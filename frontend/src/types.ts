@@ -14,7 +14,7 @@ export interface SubInfo {
 }
 
 export interface Toast {
-  id: number
+  id: string | number
   type: 'success' | 'error' | 'info' | 'warning'
   text: string
 }

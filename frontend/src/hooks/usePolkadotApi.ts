@@ -24,7 +24,8 @@ export function usePolkadotApi() {
           setCurrentBlock(bn)
         })
 
-        unsubscribe = unsub as unknown as () => void
+        // Type assertion for cleanup function
+        unsubscribe = unsub as () => void
       } catch (e) {
         const err = e as Error
         setError(err)

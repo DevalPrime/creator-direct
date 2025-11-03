@@ -9,7 +9,20 @@ export const formatTimeRemaining = (expiryBlock: number, currentBlock: number): 
 }
 
 export const formatBalance = (balance: bigint, decimals = 18): string => {
-  return (Number(balance) / Math.pow(10, decimals)).toFixed(4)
+  // Use string-based arithmetic to avoid precision loss with large bigint values
+  const balanceStr = balance.toString()
+  const len = balanceStr.length
+
+  if (len <= decimals) {
+    // Value is less than 1 unit, pad with zeros
+    const padded = '0'.repeat(decimals - len + 1) + balanceStr
+    return `0.${padded.slice(1, 5)}`
+  }
+
+  // Split at decimal point
+  const integerPart = balanceStr.slice(0, len - decimals)
+  const decimalPart = balanceStr.slice(len - decimals, len - decimals + 4)
+  return `${integerPart}.${decimalPart}`
 }
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {

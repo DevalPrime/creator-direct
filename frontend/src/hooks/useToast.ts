@@ -6,10 +6,14 @@ export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const notify = useCallback((text: string, type: Toast['type'] = 'info') => {
-    const id = Date.now() + Math.random()
-    setToasts((prev) => [...prev, { id, text, type }])
+    // Use crypto.randomUUID() for robust unique ID generation
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now() + Math.random()
+    setToasts((prev) => [...prev, { id: String(id), text, type }])
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
+      setToasts((prev) => prev.filter((t) => t.id !== String(id)))
     }, TOAST_DURATION_MS)
   }, [])
 
