@@ -1,6 +1,6 @@
-export const SHIBUYA_WS = 'wss://rpc.shibuya.astar.network'
-export const BLOCK_TIME_MS = 12_000 // Shibuya ~12s per block
-export const APP_NAME = 'CreatorDirect'
+export const SHIBUYA_WS = import.meta.env.VITE_SHIBUYA_WS || 'wss://rpc.shibuya.astar.network'
+export const BLOCK_TIME_MS = Number(import.meta.env.VITE_BLOCK_TIME_MS) || 12_000 // Shibuya ~12s per block
+export const APP_NAME = import.meta.env.VITE_APP_NAME || 'CreatorDirect'
 
 export const GAS_LIMITS = {
   QUERY: {
