@@ -43,8 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <h2>Something went wrong</h2>
           <p>
-            {this.state.error?.message ||
-              'An unexpected error occurred. Please refresh the page.'}
+            {this.state.error?.message || 'An unexpected error occurred. Please refresh the page.'}
           </p>
           <button
             className="btn btn-primary"
