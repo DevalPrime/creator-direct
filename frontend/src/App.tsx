@@ -187,7 +187,10 @@ export default function App() {
       if (!contractAddress) return
       await navigator.clipboard.writeText(contractAddress)
       notify('Contract address copied', 'success')
-    } catch {}
+    } catch (error) {
+      // Silently fail if clipboard is not available
+      console.warn('Copy to clipboard failed:', error)
+    }
   }
 
   // Fetch subscription info (new ABI) with graceful fallback
@@ -200,9 +203,9 @@ export default function App() {
         proofSize: 200_000n,
       }) as any
       // Try new helper (requires updated metadata.json)
-      // @ts-ignore - dynamic message may not exist on older metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((contract.query as any).getSubscriptionInfo) {
-        // @ts-ignore
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { result, output } = await (contract.query as any).getSubscriptionInfo(
           account,
           { gasLimit },
@@ -719,7 +722,10 @@ export default function App() {
                           </strong>
                         </span>
                       )
-                    } catch {}
+                    } catch (error) {
+                      // Silently ignore calculation errors
+                      console.warn('Period calculation error:', error)
+                    }
                     return null
                   })()}
                 </div>
