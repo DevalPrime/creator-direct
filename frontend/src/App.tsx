@@ -3,6 +3,11 @@ import { ApiPromise, WsProvider } from '@polkadot/api'
 import { ContractPromise } from '@polkadot/api-contract'
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp'
 import './styles.css'
+import TierSelector from './components/TierSelector'
+import GiftSubscription from './components/GiftSubscription'
+import AutoRenewalToggle from './components/AutoRenewalToggle'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
+import NFTPassDisplay from './components/NFTPassDisplay'
 
 // Minimal UI: connect wallet, set contract, subscribe
 
@@ -72,7 +77,26 @@ export default function App() {
   const [toasts, setToasts] = useState<
     Array<{ id: number; type: 'success' | 'error' | 'info' | 'warning'; text: string }>
   >([])
-
+  
+  // New state for advanced features
+  const [selectedTier, setSelectedTier] = useState<number>(0)
+  const [tierPrices, setTierPrices] = useState<{ bronze: bigint; silver: bigint; gold: bigint }>({
+    bronze: 0n,
+    silver: 0n,
+    gold: 0n,
+  })
+  const [autoRenewalEnabled, setAutoRenewalEnabled] = useState<boolean>(false)
+  const [nftTokenId, setNftTokenId] = useState<number | null>(null)
+  const [analytics, setAnalytics] = useState<{
+    totalSubscribers: number
+    totalRevenue: bigint
+    activeSubscribers: number
+  }>({
+    totalSubscribers: 0,
+    totalRevenue: 0n,
+    activeSubscribers: 0,
+  })
+  const [subscriberTier, setSubscriberTier] = useState<number>(0)
   useEffect(() => {
     const connect = async () => {
       try {
@@ -162,6 +186,14 @@ export default function App() {
           setContractInfo(
             `📋 Contract Settings: Price=${params[0]} plancks/period, Period=${params[1]} blocks, Creator=${params[4]}`
           )
+          
+          // Fetch tier prices
+          fetchTierPrices(contract)
+          
+          // Fetch analytics if creator
+          if (creator.toLowerCase() === account.toLowerCase()) {
+            fetchAnalytics(contract)
+          }
         } else {
           setChainParams(null)
           setContractInfo(JSON.stringify(data))
@@ -171,6 +203,101 @@ export default function App() {
       }
     } catch (e: any) {
       setContractInfo(`❌ Error: ${e.message}`)
+    }
+  }
+
+  const fetchTierPrices = async (contract: ContractPromise) => {
+    try {
+      const gasLimit = api!.registry.createType('WeightV2', {
+        refTime: 10_000_000_000n,
+        proofSize: 500_000n,
+      }) as any
+
+      const { result, output } = await contract.query.getAllTierPrices(account, { gasLimit })
+
+      if (result.isOk && output) {
+        const data = output.toHuman()
+        if (data && typeof data === 'object' && 'Ok' in data) {
+          const prices = (data as any).Ok
+          setTierPrices({
+            bronze: BigInt(String(prices[0]).replace(/,/g, '')),
+            silver: BigInt(String(prices[1]).replace(/,/g, '')),
+            gold: BigInt(String(prices[2]).replace(/,/g, '')),
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch tier prices:', e)
+    }
+  }
+
+  const fetchAnalytics = async (contract: ContractPromise) => {
+    try {
+      const gasLimit = api!.registry.createType('WeightV2', {
+        refTime: 10_000_000_000n,
+        proofSize: 500_000n,
+      }) as any
+
+      const { result, output } = await contract.query.getAnalytics(account, { gasLimit })
+
+      if (result.isOk && output) {
+        const data = output.toHuman()
+        if (data && typeof data === 'object' && 'Ok' in data) {
+          const analyticsData = (data as any).Ok
+          setAnalytics({
+            totalSubscribers: Number(String(analyticsData[0]).replace(/,/g, '')),
+            totalRevenue: BigInt(String(analyticsData[1]).replace(/,/g, '')),
+            activeSubscribers: Number(String(analyticsData[2]).replace(/,/g, '')),
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch analytics:', e)
+    }
+  }
+
+  const fetchSubscriberData = async () => {
+    if (!api || !metadata || !contractAddress || !account) return
+    
+    try {
+      const contract = new ContractPromise(api, metadata, contractAddress)
+      const gasLimit = api.registry.createType('WeightV2', {
+        refTime: 10_000_000_000n,
+        proofSize: 500_000n,
+      }) as any
+
+      // Fetch subscriber tier
+      const tierResult = await contract.query.getSubscriberTier(account, { gasLimit }, account)
+      if (tierResult.result.isOk && tierResult.output) {
+        const tierData = tierResult.output.toHuman()
+        if (tierData && typeof tierData === 'object' && 'Ok' in tierData) {
+          setSubscriberTier(Number((tierData as any).Ok))
+        }
+      }
+
+      // Fetch NFT token
+      const nftResult = await contract.query.getNftToken(account, { gasLimit }, account)
+      if (nftResult.result.isOk && nftResult.output) {
+        const nftData = nftResult.output.toHuman()
+        if (nftData && typeof nftData === 'object' && 'Ok' in nftData) {
+          const tokenData = (nftData as any).Ok
+          if (tokenData && tokenData !== 'None') {
+            const tokenId = tokenData.Some || tokenData
+            setNftTokenId(Number(String(tokenId).replace(/,/g, '')))
+          }
+        }
+      }
+
+      // Fetch auto-renewal status
+      const renewalResult = await contract.query.isAutoRenewalEnabled(account, { gasLimit }, account)
+      if (renewalResult.result.isOk && renewalResult.output) {
+        const renewalData = renewalResult.output.toHuman()
+        if (renewalData && typeof renewalData === 'object' && 'Ok' in renewalData) {
+          setAutoRenewalEnabled((renewalData as any).Ok === true)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch subscriber data:', e)
     }
   }
 
@@ -306,7 +433,7 @@ export default function App() {
       }) as any
 
       const { gasRequired, storageDeposit, result, output, debugMessage } =
-        await contract.query.subscribe(account, { value, gasLimit })
+        await contract.query.subscribeWithTier(account, { value, gasLimit }, selectedTier)
 
       console.log('Dry-run full result:', {
         result: result.toHuman(),
@@ -376,11 +503,11 @@ export default function App() {
       })
 
       // Add storage deposit limit (set to null for unlimited from balance)
-      const tx = contract.tx.subscribe({
+      const tx = contract.tx.subscribeWithTier({
         value,
         gasLimit: gasLimitTx,
         storageDepositLimit: null, // Allow any storage deposit from account balance
-      })
+      }, selectedTier)
 
       // Get the latest nonce to avoid "Transaction is outdated" error
       const nonce = await api.rpc.system.accountNextIndex(account)
@@ -475,6 +602,103 @@ export default function App() {
     } catch (e: any) {
       console.error(e)
       setStatus(`❌ Subscribe failed: ${e.message}`)
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const giftSubscription = async (recipientAddress: string, tier: number) => {
+    if (!api) return notify('API not ready', 'error')
+    if (!account) return notify('Select an account', 'error')
+    if (!contractAddress) return notify('Enter contract address', 'error')
+    if (!metadata) return notify('Metadata not loaded', 'error')
+
+    try {
+      setIsBusy(true)
+      notify('Preparing gift transaction...', 'info')
+
+      const injector = await web3FromAddress(account)
+      const contract = new ContractPromise(api, metadata, contractAddress)
+      
+      // Get tier price using array lookup
+      const tierPriceArray = [tierPrices.bronze, tierPrices.silver, tierPrices.gold]
+      const value = tierPriceArray[tier] || 0n
+
+      if (value === 0n) {
+        notify('Tier price not set', 'error')
+        return
+      }
+
+      const gasLimit = api.registry.createType('WeightV2', {
+        refTime: 30_000_000_000n,
+        proofSize: 1_000_000n,
+      }) as any
+
+      const tx = contract.tx.giftSubscription(
+        { value, gasLimit, storageDepositLimit: null },
+        recipientAddress,
+        tier
+      )
+
+      const nonce = await api.rpc.system.accountNextIndex(account)
+
+      await tx.signAndSend(
+        account,
+        { signer: injector.signer as any, nonce },
+        ({ status, dispatchError, events: _events }) => {
+          if (dispatchError) {
+            notify('Gift subscription failed', 'error')
+          } else if (status.isFinalized) {
+            notify('🎁 Gift subscription sent successfully!', 'success')
+            fetchSubscriberData()
+            refreshSubscription()
+          }
+        }
+      )
+    } catch (e: any) {
+      notify(`Failed to gift subscription: ${e.message}`, 'error')
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const toggleAutoRenewal = async (enabled: boolean) => {
+    if (!api || !account || !contractAddress || !metadata) {
+      notify('Please connect wallet and load contract first', 'error')
+      return
+    }
+
+    try {
+      setIsBusy(true)
+      notify(`${enabled ? 'Enabling' : 'Disabling'} auto-renewal...`, 'info')
+
+      const injector = await web3FromAddress(account)
+      const contract = new ContractPromise(api, metadata, contractAddress)
+
+      const gasLimit = api.registry.createType('WeightV2', {
+        refTime: 10_000_000_000n,
+        proofSize: 500_000n,
+      }) as any
+
+      const tx = contract.tx.toggleAutoRenewal({ gasLimit, storageDepositLimit: null }, enabled)
+
+      const nonce = await api.rpc.system.accountNextIndex(account)
+
+      await tx.signAndSend(
+        account,
+        { signer: injector.signer as any, nonce },
+        ({ status, dispatchError }) => {
+          if (dispatchError) {
+            notify('Failed to toggle auto-renewal', 'error')
+          } else if (status.isFinalized) {
+            notify(`🔄 Auto-renewal ${enabled ? 'enabled' : 'disabled'}!`, 'success')
+            setAutoRenewalEnabled(enabled)
+            fetchSubscriberData()
+          }
+        }
+      )
+    } catch (e: any) {
+      notify(`Failed to toggle auto-renewal: ${e.message}`, 'error')
     } finally {
       setIsBusy(false)
     }
@@ -607,6 +831,8 @@ export default function App() {
   useEffect(() => {
     refreshSubscription()
     refreshContractBalance()
+    fetchSubscriberData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, metadata, contractAddress, account])
 
   return (
@@ -731,6 +957,17 @@ export default function App() {
                 </div>
               )}
             </div>
+            
+            {/* Tier Selector */}
+            {tierPrices.bronze > 0n && (
+              <TierSelector
+                selectedTier={selectedTier}
+                onTierChange={setSelectedTier}
+                tierPrices={tierPrices}
+                disabled={isBusy}
+              />
+            )}
+            
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 className="btn btn-primary btn-lg"
@@ -746,6 +983,24 @@ export default function App() {
                 Check Contract
               </button>
             </div>
+            
+            {/* Gift Subscription */}
+            {tierPrices.bronze > 0n && (
+              <GiftSubscription
+                onGift={giftSubscription}
+                tierPrices={tierPrices}
+                disabled={isBusy}
+              />
+            )}
+            
+            {/* Auto-Renewal Toggle */}
+            {subInfo?.active && (
+              <AutoRenewalToggle
+                isEnabled={autoRenewalEnabled}
+                onToggle={toggleAutoRenewal}
+                disabled={isBusy}
+              />
+            )}
 
             <details
               className="card"
@@ -831,6 +1086,21 @@ export default function App() {
                   />
                 </div>
               </div>
+            )}
+            
+            {/* NFT Pass Display */}
+            {subInfo?.hasPass && nftTokenId && (
+              <NFTPassDisplay tokenId={nftTokenId} hasPass={subInfo.hasPass} />
+            )}
+            
+            {/* Analytics Dashboard for Creator */}
+            {chainParams && account && chainParams.creator.toLowerCase() === account.toLowerCase() && (
+              <AnalyticsDashboard
+                totalSubscribers={analytics.totalSubscribers}
+                totalRevenue={analytics.totalRevenue}
+                activeSubscribers={analytics.activeSubscribers}
+                isCreator={true}
+              />
             )}
 
             {contractAddress && (
