@@ -620,9 +620,9 @@ export default function App() {
       const injector = await web3FromAddress(account)
       const contract = new ContractPromise(api, metadata, contractAddress)
       
-      // Get tier price
-      const tierPrice = tier === 0 ? tierPrices.bronze : tier === 1 ? tierPrices.silver : tierPrices.gold
-      const value = tierPrice
+      // Get tier price using array lookup
+      const tierPriceArray = [tierPrices.bronze, tierPrices.silver, tierPrices.gold]
+      const value = tierPriceArray[tier] || 0n
 
       if (value === 0n) {
         notify('Tier price not set', 'error')

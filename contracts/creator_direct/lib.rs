@@ -3,7 +3,6 @@
 #[ink::contract]
 pub mod creator_direct {
     use ink::prelude::string::String;
-    use ink::prelude::vec::Vec;
     use ink::storage::Mapping;
 
     /// Subscription tier levels
@@ -47,8 +46,8 @@ pub mod creator_direct {
         total_subscribers: u64,
         /// Analytics: total revenue earned
         total_revenue: Balance,
-        /// Analytics: list of active subscribers
-        active_subscribers: Vec<AccountId>,
+        /// Analytics: current active subscriber count
+        active_subscriber_count: u32,
     }
 
     #[ink(event)]
@@ -126,7 +125,7 @@ pub mod creator_direct {
                 nft_tokens: Mapping::default(),
                 total_subscribers: 0,
                 total_revenue: 0,
-                active_subscribers: Vec::new(),
+                active_subscriber_count: 0,
             };
             // Initialize default tier prices (Bronze=0, Silver=1, Gold=2)
             contract.tier_prices.insert(0, &price_per_period); // Bronze
@@ -179,7 +178,16 @@ pub mod creator_direct {
             Ok(result)
         }
 
-        /// Internal function to process subscription logic
+        /// Internal function to process subscription logic.
+        /// 
+        /// # Arguments
+        /// * `_payer` - The account paying for the subscription (unused, kept for future extensibility)
+        /// * `subscriber` - The account receiving the subscription
+        /// * `tier` - The subscription tier (0=Bronze, 1=Silver, 2=Gold)
+        /// 
+        /// # Returns
+        /// * `Ok((periods, new_expiry))` - Number of periods purchased and new expiry block
+        /// * `Err(String)` - Error message if subscription fails
         fn process_subscription(&mut self, _payer: AccountId, subscriber: AccountId, tier: u8) -> Result<(u32, u32), String> {
             if tier > 2 {
                 return Err(String::from("Invalid tier (0=Bronze, 1=Silver, 2=Gold)"));
@@ -214,9 +222,13 @@ pub mod creator_direct {
             self.total_revenue = self.total_revenue.saturating_add(transferred);
             
             // Track new subscriber
-            if !self.has_pass.get(subscriber).unwrap_or(false) {
+            let is_new = !self.has_pass.get(subscriber).unwrap_or(false);
+            let was_active = current_expiry > now;
+            
+            if is_new {
                 self.has_pass.insert(subscriber, &true);
                 self.total_subscribers = self.total_subscribers.saturating_add(1);
+                self.active_subscriber_count = self.active_subscriber_count.saturating_add(1);
                 
                 // Mint NFT access pass
                 self.nft_counter = self.nft_counter.saturating_add(1);
@@ -226,11 +238,9 @@ pub mod creator_direct {
                     owner: subscriber,
                     token_id: self.nft_counter,
                 });
-            }
-            
-            // Add to active subscribers if not already present
-            if !self.active_subscribers.contains(&subscriber) {
-                self.active_subscribers.push(subscriber);
+            } else if !was_active {
+                // Reactivating expired subscription
+                self.active_subscriber_count = self.active_subscriber_count.saturating_add(1);
             }
             
             self.env().emit_event(Subscribed {
@@ -328,20 +338,10 @@ pub mod creator_direct {
 
         /// Get analytics data for creator dashboard
         /// Returns: (total_subscribers, total_revenue, active_count)
+        /// Note: active_count is cached and updated during subscription operations
         #[ink(message)]
         pub fn get_analytics(&self) -> (u64, Balance, u32) {
-            let now = self.env().block_number();
-            let mut active_count = 0u32;
-            
-            // Count active subscribers
-            for subscriber in &self.active_subscribers {
-                let expiry = self.expiry.get(subscriber).unwrap_or(0);
-                if expiry > now {
-                    active_count = active_count.saturating_add(1);
-                }
-            }
-            
-            (self.total_subscribers, self.total_revenue, active_count)
+            (self.total_subscribers, self.total_revenue, self.active_subscriber_count)
         }
 
         /// Get all tier prices at once
