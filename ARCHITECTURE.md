@@ -8,26 +8,26 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (React + Vite)                  │
-│                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Wallet     │  │  Contract    │  │ Subscription │      │
-│  │  Integration │  │  Interaction │  │   Status     │      │
-│  │              │  │              │  │              │      │
-│  │ Polkadot.js  │  │ ContractAPI  │  │  Countdown   │      │
-│  │  Extension   │  │              │  │   Display    │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
-│         │                  │                  │              │
-└─────────┼──────────────────┼──────────────────┼──────────────┘
+│                     Frontend (React + Vite)                 │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │   Wallet     │  │  Contract    │  │ Subscription │       │
+│  │  Integration │  │  Interaction │  │   Status     │       │
+│  │              │  │              │  │              │       │
+│  │ Polkadot.js  │  │ ContractAPI  │  │  Countdown   │       │
+│  │  Extension   │  │              │  │   Display    │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │             │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
           │                  │                  │
           │                  │                  │
           ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Polkadot.js API                           │
-│                                                               │
+│                    Polkadot.js API                          │
+│                                                             │
 │  ┌─────────────────┐  ┌──────────────────┐                  │
-│  │  Web3 Accounts  │  │  Contract Calls   │                  │
-│  │   Management    │  │  & Transactions   │                  │
+│  │  Web3 Accounts  │  │  Contract Calls   │                 │
+│  │   Management    │  │  & Transactions   │                 │
 │  └─────────────────┘  └──────────────────┘                  │
 └───────────────────────────┬─────────────────────────────────┘
                             │
@@ -35,32 +35,32 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Astar/Shibuya Blockchain Network                │
-│                                                               │
+│              Astar/Shibuya Blockchain Network               │
+│                                                             │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │         CreatorDirect Smart Contract (ink!)          │   │
-│  │                                                       │   │
+│  │                                                      │   │
 │  │  Storage:                                            │   │
-│  │  ├─ creator: AccountId                              │   │
-│  │  ├─ price_per_period: Balance                       │   │
-│  │  ├─ period_in_blocks: u32                           │   │
-│  │  ├─ expiry: Mapping<AccountId, u32>                 │   │
-│  │  ├─ has_pass: Mapping<AccountId, bool>              │   │
-│  │  ├─ name: String                                    │   │
-│  │  └─ description: String                             │   │
-│  │                                                       │   │
+│  │  ├─ creator: AccountId                               │   │
+│  │  ├─ price_per_period: Balance                        │   │
+│  │  ├─ period_in_blocks: u32                            │   │
+│  │  ├─ expiry: Mapping<AccountId, u32>                  │   │
+│  │  ├─ has_pass: Mapping<AccountId, bool>               │   │
+│  │  ├─ name: String                                     │   │
+│  │  └─ description: String                              │   │
+│  │                                                      │   │
 │  │  Functions:                                          │   │
-│  │  ├─ subscribe() [payable]                           │   │
-│  │  ├─ is_active(account)                              │   │
-│  │  ├─ get_subscription_info(account)                  │   │
-│  │  ├─ withdraw() [creator only]                       │   │
-│  │  └─ update_params() [creator only]                  │   │
+│  │  ├─ subscribe() [payable]                            │   │
+│  │  ├─ is_active(account)                               │   │
+│  │  ├─ get_subscription_info(account)                   │   │
+│  │  ├─ withdraw() [creator only]                        │   │
+│  │  └─ update_params() [creator only]                   │   │
 │  └──────────────────────────────────────────────────────┘   │
-│                                                               │
-│  Events:                                                      │
-│  ├─ Subscribed                                               │
-│  ├─ Withdrawn                                                │
-│  └─ ParamsUpdated                                            │
+│                                                             │
+│  Events:                                                    │
+│  ├─ Subscribed                                              │
+│  ├─ Withdrawn                                               │
+│  └─ ParamsUpdated                                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,11 +148,11 @@ User Action                    Frontend                    Contract
     │                              │                          │
     ├──1. Connect Wallet──────────>│                          │
     │                              │                          │
-    │                              ├──2. Load Accounts────────>│
+    │                              ├──2. Load Accounts───────>│
     │                              │                          │
     ├──3. Set Contract Address────>│                          │
     │                              │                          │
-    │                              ├──4. Load Contract Info───>│
+    │                              ├──4. Load Contract Info──>│
     │                              │<─────────────────────────┤
     │                              │    (price, period, etc.) │
     │                              │                          │
