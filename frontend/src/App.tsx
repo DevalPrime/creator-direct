@@ -645,7 +645,7 @@ export default function App() {
       await tx.signAndSend(
         account,
         { signer: injector.signer as any, nonce },
-        ({ status, dispatchError, events }) => {
+        ({ status, dispatchError, events: _events }) => {
           if (dispatchError) {
             notify('Gift subscription failed', 'error')
           } else if (status.isFinalized) {
@@ -832,6 +832,7 @@ export default function App() {
     refreshSubscription()
     refreshContractBalance()
     fetchSubscriberData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, metadata, contractAddress, account])
 
   return (
