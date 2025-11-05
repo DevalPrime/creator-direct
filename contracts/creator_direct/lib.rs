@@ -5,18 +5,6 @@ pub mod creator_direct {
     use ink::prelude::string::String;
     use ink::storage::Mapping;
 
-    /// Subscription tier levels
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    #[cfg_attr(
-        feature = "std",
-        derive(ink::storage::traits::StorageLayout)
-    )]
-    pub enum SubscriptionTier {
-        Bronze,
-        Silver,
-        Gold,
-    }
-
     #[ink(storage)]
     pub struct CreatorDirect {
         /// Creator/owner who receives funds
@@ -32,22 +20,6 @@ pub mod creator_direct {
         /// Metadata (optional)
         name: String,
         description: String,
-        /// Multi-tier pricing: tier -> price per period
-        tier_prices: Mapping<u8, Balance>,
-        /// Map subscriber -> current tier
-        subscriber_tier: Mapping<AccountId, u8>,
-        /// Map subscriber -> auto-renewal enabled
-        auto_renewal: Mapping<AccountId, bool>,
-        /// NFT counter for access passes
-        nft_counter: u64,
-        /// Map subscriber -> NFT token ID
-        nft_tokens: Mapping<AccountId, u64>,
-        /// Analytics: total subscribers ever
-        total_subscribers: u64,
-        /// Analytics: total revenue earned
-        total_revenue: Balance,
-        /// Analytics: current active subscriber count
-        active_subscriber_count: u32,
     }
 
     #[ink(event)]
@@ -57,33 +29,6 @@ pub mod creator_direct {
         periods: u32,
         new_expiry: u32,
         amount: Balance,
-        tier: u8,
-    }
-
-    #[ink(event)]
-    pub struct GiftSubscription {
-        #[ink(topic)]
-        gifter: AccountId,
-        #[ink(topic)]
-        recipient: AccountId,
-        periods: u32,
-        new_expiry: u32,
-        amount: Balance,
-        tier: u8,
-    }
-
-    #[ink(event)]
-    pub struct AutoRenewalToggled {
-        #[ink(topic)]
-        subscriber: AccountId,
-        enabled: bool,
-    }
-
-    #[ink(event)]
-    pub struct NFTMinted {
-        #[ink(topic)]
-        owner: AccountId,
-        token_id: u64,
     }
 
     #[ink(event)]
@@ -99,18 +44,12 @@ pub mod creator_direct {
         period_in_blocks: u32,
     }
 
-    #[ink(event)]
-    pub struct TierPriceUpdated {
-        tier: u8,
-        price: Balance,
-    }
-
     impl CreatorDirect {
         /// Instantiate with pricing and period parameters
         #[ink(constructor)]
         pub fn new(price_per_period: Balance, period_in_blocks: u32, name: String, description: String) -> Self {
             let caller = Self::env().caller();
-            let mut contract = Self {
+            Self {
                 creator: caller,
                 price_per_period,
                 period_in_blocks,
@@ -118,20 +57,7 @@ pub mod creator_direct {
                 has_pass: Mapping::default(),
                 name,
                 description,
-                tier_prices: Mapping::default(),
-                subscriber_tier: Mapping::default(),
-                auto_renewal: Mapping::default(),
-                nft_counter: 0,
-                nft_tokens: Mapping::default(),
-                total_subscribers: 0,
-                total_revenue: 0,
-                active_subscriber_count: 0,
-            };
-            // Initialize default tier prices (Bronze=0, Silver=1, Gold=2)
-            contract.tier_prices.insert(0, &price_per_period); // Bronze
-            contract.tier_prices.insert(1, &(price_per_period * 2)); // Silver (2x)
-            contract.tier_prices.insert(2, &(price_per_period * 3)); // Gold (3x)
-            contract
+            }
         }
 
         /// Returns subscription info for the provided account
@@ -147,110 +73,31 @@ pub mod creator_direct {
 
         /// Subscribe by sending native tokens. Extends access by N periods.
         /// Transfers are held in the contract until withdrawn by the creator.
-        /// Default to Bronze tier (0) for backward compatibility
         #[ink(message, payable)]
         pub fn subscribe(&mut self) -> Result<(u32, u32), String> {
-            self.subscribe_with_tier(0)
-        }
-
-        /// Subscribe with a specific tier (0=Bronze, 1=Silver, 2=Gold)
-        #[ink(message, payable)]
-        pub fn subscribe_with_tier(&mut self, tier: u8) -> Result<(u32, u32), String> {
-            let caller = self.env().caller();
-            self.process_subscription(caller, caller, tier)
-        }
-
-        /// Gift a subscription to another account
-        #[ink(message, payable)]
-        pub fn gift_subscription(&mut self, recipient: AccountId, tier: u8) -> Result<(u32, u32), String> {
-            let caller = self.env().caller();
-            let result = self.process_subscription(caller, recipient, tier)?;
-            
-            self.env().emit_event(GiftSubscription {
-                gifter: caller,
-                recipient,
-                periods: result.0,
-                new_expiry: result.1,
-                amount: self.env().transferred_value(),
-                tier,
-            });
-            
-            Ok(result)
-        }
-
-        /// Internal function to process subscription logic.
-        /// 
-        /// # Arguments
-        /// * `_payer` - The account paying for the subscription (unused, kept for future extensibility)
-        /// * `subscriber` - The account receiving the subscription
-        /// * `tier` - The subscription tier (0=Bronze, 1=Silver, 2=Gold)
-        /// 
-        /// # Returns
-        /// * `Ok((periods, new_expiry))` - Number of periods purchased and new expiry block
-        /// * `Err(String)` - Error message if subscription fails
-        fn process_subscription(&mut self, _payer: AccountId, subscriber: AccountId, tier: u8) -> Result<(u32, u32), String> {
-            if tier > 2 {
-                return Err(String::from("Invalid tier (0=Bronze, 1=Silver, 2=Gold)"));
-            }
-            
-            let tier_price = self.tier_prices.get(tier).unwrap_or(0);
-            if tier_price == 0 {
-                return Err(String::from("Tier price not set"));
-            }
-            
             let transferred = self.env().transferred_value();
-            if transferred < tier_price {
-                return Err(String::from("Insufficient amount sent for tier"));
+            if self.price_per_period == 0 {
+                return Err(String::from("Price not set"));
             }
-            
+            if transferred < self.price_per_period {
+                return Err(String::from("Insufficient amount sent"));
+            }
+            let caller = self.env().caller();
             #[allow(clippy::cast_possible_truncation, clippy::arithmetic_side_effects)]
-            let periods: u32 = (transferred / tier_price) as u32;
+            let periods: u32 = (transferred / self.price_per_period) as u32;
             if periods == 0 {
                 return Err(String::from("Amount does not cover a full period"));
             }
-            
             let now = self.env().block_number();
-            let current_expiry = self.expiry.get(subscriber).unwrap_or(0);
+            let current_expiry = self.expiry.get(caller).unwrap_or(0);
             let base = if current_expiry > now { current_expiry } else { now };
             let added_blocks = self.period_in_blocks.saturating_mul(periods);
             let new_expiry = base.saturating_add(added_blocks);
-            
-            self.expiry.insert(subscriber, &new_expiry);
-            self.subscriber_tier.insert(subscriber, &tier);
-            
-            // Update analytics
-            self.total_revenue = self.total_revenue.saturating_add(transferred);
-            
-            // Track new subscriber
-            let is_new = !self.has_pass.get(subscriber).unwrap_or(false);
-            let was_active = current_expiry > now;
-            
-            if is_new {
-                self.has_pass.insert(subscriber, &true);
-                self.total_subscribers = self.total_subscribers.saturating_add(1);
-                self.active_subscriber_count = self.active_subscriber_count.saturating_add(1);
-                
-                // Mint NFT access pass
-                self.nft_counter = self.nft_counter.saturating_add(1);
-                self.nft_tokens.insert(subscriber, &self.nft_counter);
-                
-                self.env().emit_event(NFTMinted {
-                    owner: subscriber,
-                    token_id: self.nft_counter,
-                });
-            } else if !was_active {
-                // Reactivating expired subscription
-                self.active_subscriber_count = self.active_subscriber_count.saturating_add(1);
+            self.expiry.insert(caller, &new_expiry);
+            if !self.has_pass.get(caller).unwrap_or(false) {
+                self.has_pass.insert(caller, &true);
             }
-            
-            self.env().emit_event(Subscribed {
-                subscriber,
-                periods,
-                new_expiry,
-                amount: transferred,
-                tier,
-            });
-            
+            self.env().emit_event(Subscribed { subscriber: caller, periods, new_expiry, amount: transferred });
             Ok((periods, new_expiry))
         }
 
@@ -289,70 +136,6 @@ pub mod creator_direct {
             self.env().transfer(to, balance).map_err(|_| String::from("Transfer failed"))?;
             self.env().emit_event(Withdrawn { to, amount: balance });
             Ok(balance)
-        }
-
-        /// Toggle auto-renewal for the caller's subscription
-        #[ink(message)]
-        pub fn toggle_auto_renewal(&mut self, enabled: bool) -> Result<(), String> {
-            let caller = self.env().caller();
-            self.auto_renewal.insert(caller, &enabled);
-            self.env().emit_event(AutoRenewalToggled { subscriber: caller, enabled });
-            Ok(())
-        }
-
-        /// Check if auto-renewal is enabled for an account
-        #[ink(message)]
-        pub fn is_auto_renewal_enabled(&self, account: AccountId) -> bool {
-            self.auto_renewal.get(account).unwrap_or(false)
-        }
-
-        /// Get NFT token ID for a subscriber
-        #[ink(message)]
-        pub fn get_nft_token(&self, account: AccountId) -> Option<u64> {
-            self.nft_tokens.get(account)
-        }
-
-        /// Get subscriber's current tier
-        #[ink(message)]
-        pub fn get_subscriber_tier(&self, account: AccountId) -> u8 {
-            self.subscriber_tier.get(account).unwrap_or(0)
-        }
-
-        /// Get price for a specific tier
-        #[ink(message)]
-        pub fn get_tier_price(&self, tier: u8) -> Balance {
-            self.tier_prices.get(tier).unwrap_or(0)
-        }
-
-        /// Creator can update tier prices
-        #[ink(message)]
-        pub fn update_tier_price(&mut self, tier: u8, price: Balance) -> Result<(), String> {
-            self.ensure_creator()?;
-            if tier > 2 {
-                return Err(String::from("Invalid tier (0=Bronze, 1=Silver, 2=Gold)"));
-            }
-            self.tier_prices.insert(tier, &price);
-            self.env().emit_event(TierPriceUpdated { tier, price });
-            Ok(())
-        }
-
-        /// Get analytics data for creator dashboard
-        /// Returns: (total_subscribers, total_revenue, active_count)
-        /// Note: active_count is cached and updated during subscription operations
-        #[ink(message)]
-        pub fn get_analytics(&self) -> (u64, Balance, u32) {
-            (self.total_subscribers, self.total_revenue, self.active_subscriber_count)
-        }
-
-        /// Get all tier prices at once
-        /// Returns: (bronze_price, silver_price, gold_price)
-        #[ink(message)]
-        pub fn get_all_tier_prices(&self) -> (Balance, Balance, Balance) {
-            (
-                self.tier_prices.get(0).unwrap_or(0),
-                self.tier_prices.get(1).unwrap_or(0),
-                self.tier_prices.get(2).unwrap_or(0),
-            )
         }
 
         fn ensure_creator(&self) -> Result<(), String> {
@@ -407,7 +190,7 @@ pub mod creator_direct {
             test::set_value_transferred::<ink::env::DefaultEnvironment>(50u128);
             let result = contract.subscribe();
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err(), "Insufficient amount sent for tier");
+            assert_eq!(result.unwrap_err(), "Insufficient amount sent");
         }
 
         #[ink::test]
@@ -500,7 +283,7 @@ pub mod creator_direct {
             test::set_value_transferred::<ink::env::DefaultEnvironment>(100u128);
             let result = contract.subscribe();
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err(), "Tier price not set");
+            assert_eq!(result.unwrap_err(), "Price not set");
         }
 
         #[ink::test]
@@ -558,127 +341,6 @@ pub mod creator_direct {
             let (new_price, new_period, _, _, _) = contract.get_params();
             assert_eq!(new_price, 200u128);
             assert_eq!(new_period, 10u32);
-        }
-
-        #[ink::test]
-        fn multi_tier_subscription_works() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            set_caller(accounts.alice);
-
-            // Subscribe to Silver tier (tier 1)
-            test::set_value_transferred::<ink::env::DefaultEnvironment>(200u128); // Silver is 2x bronze
-            let result = contract.subscribe_with_tier(1);
-            assert!(result.is_ok());
-            
-            // Verify tier
-            assert_eq!(contract.get_subscriber_tier(accounts.alice), 1);
-            assert!(contract.is_active(accounts.alice));
-        }
-
-        #[ink::test]
-        fn gift_subscription_works() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            
-            // Alice gifts subscription to Bob
-            set_caller(accounts.alice);
-            test::set_value_transferred::<ink::env::DefaultEnvironment>(100u128);
-            let result = contract.gift_subscription(accounts.bob, 0);
-            assert!(result.is_ok());
-            
-            // Bob should have active subscription
-            assert!(contract.is_active(accounts.bob));
-        }
-
-        #[ink::test]
-        fn auto_renewal_toggle_works() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            set_caller(accounts.alice);
-
-            // Enable auto-renewal
-            let result = contract.toggle_auto_renewal(true);
-            assert!(result.is_ok());
-            assert!(contract.is_auto_renewal_enabled(accounts.alice));
-
-            // Disable auto-renewal
-            let result = contract.toggle_auto_renewal(false);
-            assert!(result.is_ok());
-            assert!(!contract.is_auto_renewal_enabled(accounts.alice));
-        }
-
-        #[ink::test]
-        fn nft_minting_on_first_subscription() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            set_caller(accounts.alice);
-
-            // First subscription should mint NFT
-            test::set_value_transferred::<ink::env::DefaultEnvironment>(100u128);
-            let _ = contract.subscribe().expect("subscribe ok");
-            
-            // Verify NFT was minted
-            assert!(contract.get_nft_token(accounts.alice).is_some());
-            assert_eq!(contract.get_nft_token(accounts.alice).unwrap(), 1);
-        }
-
-        #[ink::test]
-        fn analytics_tracking_works() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            
-            // Alice subscribes
-            set_caller(accounts.alice);
-            test::set_value_transferred::<ink::env::DefaultEnvironment>(100u128);
-            let _ = contract.subscribe().expect("subscribe ok");
-            
-            // Bob subscribes
-            set_caller(accounts.bob);
-            test::set_value_transferred::<ink::env::DefaultEnvironment>(100u128);
-            let _ = contract.subscribe().expect("subscribe ok");
-            
-            // Check analytics
-            let (total_subs, total_rev, active_count) = contract.get_analytics();
-            assert_eq!(total_subs, 2);
-            assert_eq!(total_rev, 200u128);
-            assert_eq!(active_count, 2);
-        }
-
-        #[ink::test]
-        fn tier_prices_can_be_updated() {
-            let price = 100u128;
-            let period = 5u32;
-            let mut contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            let accounts = test::default_accounts::<ink::env::DefaultEnvironment>();
-            set_caller(accounts.alice);
-
-            // Update Gold tier price
-            let result = contract.update_tier_price(2, 500u128);
-            assert!(result.is_ok());
-            assert_eq!(contract.get_tier_price(2), 500u128);
-        }
-
-        #[ink::test]
-        fn get_all_tier_prices_works() {
-            let price = 100u128;
-            let period = 5u32;
-            let contract = CreatorDirect::new(price, period, String::from("Demo"), String::from("Desc"));
-            
-            let (bronze, silver, gold) = contract.get_all_tier_prices();
-            assert_eq!(bronze, 100u128);
-            assert_eq!(silver, 200u128);
-            assert_eq!(gold, 300u128);
         }
     }
 }
