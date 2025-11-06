@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import { ContractPromise } from '@polkadot/api-contract'
 import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp'
@@ -10,39 +10,6 @@ const SHIBUYA_WS = 'wss://rpc.shibuya.astar.network'
 const BLOCK_TIME_MS = 12_000 // Shibuya ~12s per block
 const APP_NAME = 'CreatorDirect'
 
-// Small presentational component: circular progress ring
-function ProgressRing({ percent, label, sub }: { percent: number; label?: string; sub?: string }) {
-  const radius = 28
-  const circumference = 2 * Math.PI * radius
-  const p = Math.max(0, Math.min(100, Math.round(percent)))
-  const dash = (p / 100) * circumference
-  return (
-    <div className="ring">
-      <svg viewBox="0 0 70 70" aria-label="progress">
-        <circle cx="35" cy="35" r={radius} fill="none" stroke="#eee" strokeWidth="8" />
-        <circle
-          cx="35"
-          cy="35"
-          r={radius}
-          fill="none"
-          stroke="#667eea"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference - dash}`}
-          transform="rotate(-90 35 35)"
-        />
-        <text x="35" y="39" textAnchor="middle" fontSize="14" fontWeight="700" fill="#333">
-          {p}%
-        </text>
-      </svg>
-      <div>
-        <div className="label">{label}</div>
-        {sub && <div className="sub">{sub}</div>}
-      </div>
-    </div>
-  )
-}
-
 export default function App() {
   const [api, setApi] = useState<ApiPromise | null>(null)
   const [account, setAccount] = useState<string>('')
@@ -50,7 +17,7 @@ export default function App() {
   const [contractAddress, setContractAddress] = useState<string>('')
   const [metadata, setMetadata] = useState<any>(null)
   const [pricePerPeriod, setPricePerPeriod] = useState<string>('1000000000000000000')
-  const [periodBlocks, setPeriodBlocks] = useState<string>('600')
+
   const [status, setStatus] = useState<string>('')
   const [contractInfo, setContractInfo] = useState<string>('')
   const [chainParams, setChainParams] = useState<{
@@ -59,15 +26,10 @@ export default function App() {
     creator: string
   } | null>(null)
   const [currentBlock, setCurrentBlock] = useState<number>(0)
-  const [subInfo, setSubInfo] = useState<{
-    active: boolean
-    expiry: number
-    now: number
-    hasPass: boolean
-  } | null>(null)
+
   const [isBusy, setIsBusy] = useState<boolean>(false)
   const [txHistory, setTxHistory] = useState<string[]>([])
-  const [contractBalance, setContractBalance] = useState<bigint>(0n)
+
   const [showQr, setShowQr] = useState(false)
   const [toasts, setToasts] = useState<
     Array<{ id: number; type: 'success' | 'error' | 'info' | 'warning'; text: string }>
@@ -190,64 +152,6 @@ export default function App() {
     } catch (error) {
       // Silently fail if clipboard is not available
       console.warn('Copy to clipboard failed:', error)
-    }
-  }
-
-  // Fetch subscription info (new ABI) with graceful fallback
-  const refreshSubscription = async () => {
-    if (!api || !metadata || !contractAddress || !account) return
-    try {
-      const contract = new ContractPromise(api, metadata, contractAddress)
-      const gasLimit = api.registry.createType('WeightV2', {
-        refTime: 8_000_000_000n,
-        proofSize: 200_000n,
-      }) as any
-      // Try new helper (requires updated metadata.json)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((contract.query as any).getSubscriptionInfo) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { result, output } = await (contract.query as any).getSubscriptionInfo(
-          account,
-          { gasLimit },
-          account
-        )
-        if (result.isOk && output) {
-          const human = output.toHuman() as any
-          const ok = (human && human.Ok) || human
-          // ok should be [active, expiry, now, has_pass]
-          const [active, expiry, now, hasPass] = ok
-          setSubInfo({
-            active: active === true || active === 'true',
-            expiry: Number(String(expiry).replace(/,/g, '')),
-            now: Number(String(now).replace(/,/g, '')),
-            hasPass: hasPass === true || hasPass === 'true',
-          })
-          return
-        }
-      }
-      // Fallback: only know active flag
-      const { result, output } = await contract.query.isActive(account, { gasLimit }, account)
-      if (result.isOk && output) {
-        const human = output.toHuman() as any
-        const ok = (human && human.Ok) || human
-        const active = ok === true || ok === 'true'
-        setSubInfo({ active, expiry: 0, now: currentBlock, hasPass: false })
-      }
-    } catch (e) {
-      console.warn('refreshSubscription failed', e)
-    }
-  }
-
-  // Fetch contract balance (creator dashboard)
-  const refreshContractBalance = async () => {
-    if (!api || !contractAddress) return
-    try {
-      // Query system account for contract address
-      const info = await (api.query as any).system.account(contractAddress)
-      const free = (info as any).data.free.toBigInt()
-      setContractBalance(free)
-    } catch (e) {
-      console.warn('refreshContractBalance failed', e)
     }
   }
 
@@ -440,7 +344,6 @@ export default function App() {
                   10
                 )
               )
-              refreshSubscription()
             } else {
               // Check for any errors in events
               const failedEvent = events?.find(
@@ -479,135 +382,6 @@ export default function App() {
       setIsBusy(false)
     }
   }
-
-  const updateContractParams = async () => {
-    if (!api || !account) return setStatus('Connect wallet first')
-    if (!contractAddress) return setStatus('Enter contract address')
-    if (!metadata) return setStatus('Metadata not loaded')
-
-    try {
-      setIsBusy(true)
-      setStatus('Updating contract parameters...')
-
-      const injector = await web3FromAddress(account)
-      const contract = new ContractPromise(api, metadata, contractAddress)
-
-      const newPriceValue = BigInt(pricePerPeriod)
-      const newPeriodValue = parseInt(periodBlocks)
-
-      if (newPriceValue === 0n) {
-        return setStatus('❌ Price cannot be 0')
-      }
-      if (newPeriodValue === 0) {
-        return setStatus('❌ Period cannot be 0')
-      }
-
-      console.log('Updating params:', {
-        price: newPriceValue.toString(),
-        period: newPeriodValue,
-      })
-
-      // Call update_params
-      const gasLimit = api.registry.createType('WeightV2', {
-        refTime: 10_000_000_000n,
-        proofSize: 500_000n,
-      }) as any
-
-      const tx = contract.tx.updateParams(
-        { gasLimit, storageDepositLimit: null },
-        newPriceValue,
-        newPeriodValue
-      )
-
-      const nonce = await api.rpc.system.accountNextIndex(account)
-
-      await tx.signAndSend(
-        account,
-        { signer: injector.signer as any, nonce },
-        ({ status, dispatchError }) => {
-          if (dispatchError) {
-            if (dispatchError.isModule) {
-              const decoded = api.registry.findMetaError(dispatchError.asModule)
-              setStatus(`❌ Error: ${decoded.section}.${decoded.name} - ${decoded.docs.join(' ')}`)
-            } else {
-              setStatus(`❌ Error: ${dispatchError.toString()}`)
-            }
-          } else if (status.isFinalized) {
-            setStatus('✅ Contract parameters updated! Click "Check Contract" to verify.')
-            checkContractParams()
-            setTxHistory((prev) =>
-              [`Params updated at #${status.asFinalized.toString().slice(0, 10)}`, ...prev].slice(
-                0,
-                10
-              )
-            )
-          }
-        }
-      )
-    } catch (e: any) {
-      console.error(e)
-      setStatus(`❌ Update failed: ${e.message}`)
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
-  const withdraw = async () => {
-    if (!api || !account || !metadata || !contractAddress) return setStatus('Missing prerequisites')
-    try {
-      setIsBusy(true)
-      setStatus('Withdrawing funds to creator...')
-      const injector = await web3FromAddress(account)
-      const contract = new ContractPromise(api, metadata, contractAddress)
-      const gasLimit = api.registry.createType('WeightV2', {
-        refTime: 10_000_000_000n,
-        proofSize: 500_000n,
-      }) as any
-      const tx = contract.tx.withdraw({ gasLimit, storageDepositLimit: null })
-      const nonce = await api.rpc.system.accountNextIndex(account)
-      await tx.signAndSend(
-        account,
-        { signer: injector.signer as any, nonce },
-        ({ status, dispatchError }) => {
-          if (dispatchError) {
-            if (dispatchError.isModule) {
-              const decoded = api.registry.findMetaError(dispatchError.asModule)
-              setStatus(`❌ Error: ${decoded.section}.${decoded.name} - ${decoded.docs.join(' ')}`)
-            } else {
-              setStatus(`❌ Error: ${dispatchError.toString()}`)
-            }
-          } else if (status.isFinalized) {
-            setStatus('✅ Withdraw successful')
-            setTxHistory((prev) =>
-              [`Withdraw at #${status.asFinalized.toString().slice(0, 10)}`, ...prev].slice(0, 10)
-            )
-            refreshContractBalance()
-          }
-        }
-      )
-    } catch (e: any) {
-      console.error(e)
-      setStatus(`❌ Withdraw failed: ${e.message}`)
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
-  // Derived displays
-  const humanTimeRemaining = useMemo(() => {
-    if (!subInfo || !subInfo.expiry || !currentBlock) return ''
-    const blocksLeft = Math.max(0, subInfo.expiry - currentBlock)
-    const ms = blocksLeft * BLOCK_TIME_MS
-    const hrs = Math.floor(ms / 3_600_000)
-    const mins = Math.floor((ms % 3_600_000) / 60_000)
-    return `${hrs}h ${mins}m`
-  }, [subInfo, currentBlock])
-
-  // Refresh sub info when inputs change
-  useEffect(() => {
-    refreshSubscription()
-    refreshContractBalance()
-  }, [api, metadata, contractAddress, account])
 
   return (
     <div className="app-container">
@@ -707,8 +481,7 @@ export default function App() {
                       if (per === 0n) return null
                       const periods = Number(paying / per)
                       const blocks = periods * chainParams.period
-                      const base =
-                        subInfo?.active && subInfo?.expiry ? subInfo.expiry : currentBlock
+                      const base = currentBlock
                       const estExpiryBlock = base + blocks
                       const estMs = Math.max(0, estExpiryBlock - currentBlock) * BLOCK_TIME_MS
                       const hours = Math.floor(estMs / 3_600_000)
@@ -746,133 +519,15 @@ export default function App() {
                 Check Contract
               </button>
             </div>
-
-            <details
-              className="card"
-              style={{ background: '#fff3cd', border: '1px solid #ffc107' }}
-            >
-              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#856404' }}>
-                🔧 Update Contract Settings (Creator Only)
-              </summary>
-              <div style={{ marginTop: 12 }}>
-                <div className="alert alert-warning">
-                  ⚠️ Only the contract creator can update these settings.
-                </div>
-                <div className="form-group">
-                  <label className="form-label">New Price (plancks):</label>
-                  <input
-                    value={pricePerPeriod}
-                    onChange={(e) => setPricePerPeriod(e.target.value)}
-                    placeholder="1000000000000000000"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">New Period (blocks):</label>
-                  <input
-                    value={periodBlocks}
-                    onChange={(e) => setPeriodBlocks(e.target.value)}
-                    placeholder="600"
-                  />
-                </div>
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    await updateContractParams()
-                    notify('Contract settings updated', 'success')
-                  }}
-                  disabled={isBusy || !account || !contractAddress}
-                >
-                  {isBusy ? '⏳ Updating...' : 'Update Settings'}
-                </button>
-              </div>
-            </details>
           </div>
 
           <div>
-            {contractAddress && (
-              <div className="card card-info" style={{ marginBottom: 16 }}>
-                <div
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <div style={{ fontWeight: 700 }}>Subscription Status</div>
-                  {chainParams && subInfo?.active && (
-                    <ProgressRing
-                      percent={Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          Math.round(
-                            ((subInfo.expiry - currentBlock) / Math.max(1, chainParams.period)) *
-                              100
-                          )
-                        )
-                      )}
-                      label={humanTimeRemaining || '—'}
-                      sub={`until expiry (block #${subInfo.expiry})`}
-                    />
-                  )}
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <span
-                    className={`status-badge ${subInfo?.active ? 'status-badge-success' : 'status-badge-error'}`}
-                  >
-                    {subInfo?.active ? '✓ Active' : '✗ Not active'}
-                  </span>
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Share</div>
-                  <img
-                    alt="QR"
-                    width={120}
-                    height={120}
-                    className="qr-image"
-                    onClick={() => setShowQr(true)}
-                    src={`https://chart.googleapis.com/chart?chs=240x240&cht=qr&chl=${encodeURIComponent(contractAddress)}`}
-                  />
-                </div>
-              </div>
-            )}
-
-            {contractAddress && (
-              <div className="card">
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Creator Dashboard</div>
-                <div style={{ marginBottom: 12 }}>
-                  Contract balance: <strong>{Number(contractBalance) / 1e18} SBY</strong>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-secondary" onClick={refreshContractBalance}>
-                    Refresh
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={async () => {
-                      await withdraw()
-                      notify('Withdraw sent', 'info')
-                    }}
-                    disabled={isBusy || (!!chainParams && chainParams.creator !== account)}
-                  >
-                    Withdraw
-                  </button>
-                  {chainParams && chainParams.creator !== account && (
-                    <span style={{ fontSize: 12, color: '#777' }}>Creator only</span>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div className="card" style={{ marginTop: 16 }}>
               <div
                 className={`alert ${status.includes('✅') ? 'alert-success' : status.includes('❌') ? 'alert-error' : 'alert-info'}`}
               >
                 <strong>Status:</strong> {status || 'Waiting...'}
               </div>
-              {subInfo?.active &&
-                subInfo?.expiry &&
-                (subInfo.expiry - currentBlock) * BLOCK_TIME_MS < 2 * 60 * 60 * 1000 && (
-                  <div className="alert alert-warning" style={{ marginTop: 8 }}>
-                    ⏰ Your subscription expires in {humanTimeRemaining}. Consider renewing.
-                  </div>
-                )}
             </div>
 
             {txHistory.length > 0 && (
