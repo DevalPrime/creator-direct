@@ -176,7 +176,6 @@ await contract.tx.subscribe({ value, gasLimit })
     }
   })
 ```
-```
 
 ## Development Process
 
