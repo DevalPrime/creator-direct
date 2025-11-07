@@ -23,20 +23,17 @@ Creators receive payments directly on-chain with instant access to funds. Subscr
 - 🔒 **Censorship Resistant** - No platform can ban or deplatform
 - 🌍 **Global Access** - Anyone with a wallet can participate
 - 📊 **Transparent** - All transactions visible on-chain
-- ⏱️ **Real-Time Status** - Live subscription countdown and status
-- 🎨 **Creator Dashboard** - Manage subscriptions and withdraw funds
 - 🔧 **Flexible Pricing** - Creators set their own terms
 
 ## 📸 Screenshots
 
 ### Main Interface
-The application features a clean, intuitive interface for both subscribers and creators:
+The application features a clean, minimal interface focused on subscriptions:
 
 - **Wallet Connection**: Easy integration with Polkadot.js Extension
 - **Contract Interaction**: Simple address input and contract loading
-- **Subscription Management**: Quick-fill buttons for common amounts
-- **Status Display**: Real-time subscription status with countdown timer
-- **Creator Tools**: Settings and withdrawal options for contract owners
+- **Subscription Payment**: Enter payment amount and subscribe with one click
+- **Status Messages**: Transaction status and confirmation feedback
 
 *See the screenshot above for the full interface*
 
@@ -54,7 +51,7 @@ CreatorDirect consists of two main components:
 - **Framework**: React 18 + TypeScript
 - **Build Tool**: Vite
 - **Web3 Library**: Polkadot.js API
-- **Features**: Real-time status, wallet integration, countdown timers
+- **Features**: Wallet integration, contract interaction, subscription payments
 
 For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -96,20 +93,20 @@ Open http://localhost:3000 in your browser.
 
 3. **Subscribe to a Creator**
    - Paste the contract address: `YQR6oMn2k8Yyzwb7w252jvA27ADa6AswAWfXFaYcMGSmhmq`
-   - Click "Check Contract" to load details
-   - Enter payment amount (or use quick-fill buttons)
+   - Click "Check Contract" to load contract details
+   - Enter payment amount in plancks (e.g., 1000000000000000000 = 1 SBY)
    - Click "Subscribe & Pay"
    - Sign the transaction in your wallet
 
-4. **View Subscription Status**
-   - See active/expired status
-   - Watch countdown timer
-   - Check remaining blocks
+4. **Verify Subscription**
+   - Open [Polkadot.js Apps](https://polkadot.js.org/apps/)
+   - Connect to Shibuya network: Settings → Select "Shibuya" or use `wss://rpc.shibuya.astar.network`
+   - Navigate to Developer → Contracts
+   - Add the contract address and interact with it
+   - Call `is_active(your_address)` to check subscription status
+   - Call `get_subscription_info(your_address)` to see expiry details
 
-5. **Creator Functions** (if you're the contract owner)
-   - View contract balance
-   - Withdraw accumulated funds
-   - Update subscription pricing
+> **Note for Creators**: To manage your contract (withdraw funds, update pricing), use [Polkadot.js Apps](https://polkadot.js.org/apps/) contract interface directly on the Shibuya network.
 
 ## 📦 Deployment
 
@@ -337,6 +334,7 @@ git push origin feature/your-feature-name
 - ✅ Shibuya testnet deployment
 
 ### Future Enhancements
+- [ ] Enhanced frontend UI (real-time status, countdown timers, creator dashboard)
 - [ ] Multi-tier subscription levels
 - [ ] NFT-based subscriptions (transferable)
 - [ ] Referral reward system
@@ -346,7 +344,6 @@ git push origin feature/your-feature-name
 - [ ] Batch operations
 - [ ] Auto-renewal options
 - [ ] Mobile wallet support
-- [ ] Enhanced creator tools
 
 ## 📄 License
 

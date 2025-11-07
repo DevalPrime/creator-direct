@@ -12,10 +12,10 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
 │  │   Wallet     │  │  Contract    │  │ Subscription │       │
-│  │  Integration │  │  Interaction │  │   Status     │       │
+│  │  Integration │  │  Interaction │  │   Payment    │       │
 │  │              │  │              │  │              │       │
-│  │ Polkadot.js  │  │ ContractAPI  │  │  Countdown   │       │
-│  │  Extension   │  │              │  │   Display    │       │
+│  │ Polkadot.js  │  │ ContractAPI  │  │   Subscribe  │       │
+│  │  Extension   │  │              │  │   Function   │       │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 │         │                  │                  │             │
 └─────────┼──────────────────┼──────────────────┼─────────────┘
@@ -76,18 +76,16 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 
 **Key Features:**
 - Wallet connection via Polkadot.js browser extension
-- Real-time subscription status display
-- Countdown timer showing blocks until expiry
-- Creator dashboard for withdrawing funds
-- Quick-fill amount buttons
-- QR code sharing
-- Toast notifications
+- Contract address input and validation
+- Subscription payment interface
+- Transaction status feedback
+- QR code sharing for contract address
 
 **Main Components:**
-- `App.tsx`: Main application component
-- `ProgressRing`: Circular progress indicator for subscription status
+- `App.tsx`: Main application component with all functionality
 - Wallet connection and account selection
 - Contract interaction UI
+- Payment and subscription flow
 
 ### Smart Contract (ink!)
 
@@ -118,7 +116,7 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 
 3. **get_subscription_info(account)**
    - Returns tuple: (is_active, expiry_block, current_block, has_pass)
-   - Used by frontend to display subscription status
+   - Used to query subscription status (can be called via Polkadot.js Apps)
 
 4. **withdraw() [creator only]**
    - Transfers all contract balance to creator
@@ -169,33 +167,35 @@ User Action                    Frontend                    Contract
     │                              │<─9. Emit Subscribed──────┤
     │                              │    Event                 │
     │                              │                          │
-    │                              ├─10. Query status────────>│
+    │<─10. Transaction confirmed───┤                          │
     │                              │                          │
-    │<─11. Show Active Status──────┤                          │
-    │    with countdown            │                          │
 ```
 
 ### Withdrawal Flow (Creator Only)
 
+The withdraw() function is available in the smart contract but not exposed in the simplified frontend UI. Creators should use [Polkadot.js Apps](https://polkadot.js.org/apps/) to interact with the contract directly:
+
 ```
-Creator                       Frontend                    Contract
+Creator                    Polkadot.js Apps            Contract
    │                              │                          │
-   ├──1. Click Withdraw──────────>│                          │
+   ├──1. Navigate to contract────>│                          │
    │                              │                          │
-   │                              ├──2. Call withdraw()─────>│
+   ├──2. Call withdraw()─────────>│                          │
    │                              │                          │
-   │                              │                          ├─3. Verify caller
+   │                              ├──3. Submit tx───────────>│
+   │                              │                          │
+   │                              │                          ├─4. Verify caller
    │                              │                          │   is creator
    │                              │                          │
-   │                              │                          ├─4. Get balance
+   │                              │                          ├─5. Get balance
    │                              │                          │
-   │                              │                          ├─5. Transfer to
+   │                              │                          ├─6. Transfer to
    │                              │                          │   creator
    │                              │                          │
-   │                              │<─6. Emit Withdrawn───────┤
+   │                              │<─7. Emit Withdrawn───────┤
    │                              │    Event                 │
    │                              │                          │
-   │<─7. Show success message─────┤                          │
+   │<─8. Transaction confirmed────┤                          │
 ```
 
 ## Security Considerations
@@ -265,7 +265,7 @@ Frontend integration with the contract should test:
 - Wallet connection flow
 - Contract loading and interaction
 - Transaction signing and submission
-- UI state updates based on blockchain events
+- Transaction status feedback
 
 ## Deployment
 
@@ -292,14 +292,15 @@ Frontend integration with the contract should test:
 
 Potential improvements for the system:
 
-1. **Multi-tier Subscriptions:** Support for different subscription levels
-2. **Bulk Operations:** Batch subscription management
-3. **Referral System:** Creator referral rewards
-4. **NFT Integration:** Subscription as NFT for transferability
-5. **Cross-chain Support:** Bridge to other Polkadot parachains
-6. **Automatic Renewals:** Optional recurring payments
-7. **Analytics Dashboard:** Detailed subscription metrics
-8. **Token Payments:** Support for custom tokens beyond native currency
+1. **Enhanced Frontend UI:** Real-time subscription status display, countdown timers, creator dashboard
+2. **Multi-tier Subscriptions:** Support for different subscription levels
+3. **Bulk Operations:** Batch subscription management
+4. **Referral System:** Creator referral rewards
+5. **NFT Integration:** Subscription as NFT for transferability
+6. **Cross-chain Support:** Bridge to other Polkadot parachains
+7. **Automatic Renewals:** Optional recurring payments
+8. **Analytics Dashboard:** Detailed subscription metrics for creators
+9. **Token Payments:** Support for custom tokens beyond native currency
 
 ## Resources
 
