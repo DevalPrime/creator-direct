@@ -116,7 +116,7 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 
 3. **get_subscription_info(account)**
    - Returns tuple: (is_active, expiry_block, current_block, has_pass)
-   - Used by frontend to display subscription status
+   - Used to query subscription status (can be called via Polkadot.js Apps)
 
 4. **withdraw() [creator only]**
    - Transfers all contract balance to creator
@@ -267,7 +267,7 @@ Frontend integration with the contract should test:
 - Wallet connection flow
 - Contract loading and interaction
 - Transaction signing and submission
-- UI state updates based on blockchain events
+- Transaction status feedback
 
 ## Deployment
 
@@ -294,14 +294,15 @@ Frontend integration with the contract should test:
 
 Potential improvements for the system:
 
-1. **Multi-tier Subscriptions:** Support for different subscription levels
-2. **Bulk Operations:** Batch subscription management
-3. **Referral System:** Creator referral rewards
-4. **NFT Integration:** Subscription as NFT for transferability
-5. **Cross-chain Support:** Bridge to other Polkadot parachains
-6. **Automatic Renewals:** Optional recurring payments
-7. **Analytics Dashboard:** Detailed subscription metrics
-8. **Token Payments:** Support for custom tokens beyond native currency
+1. **Enhanced Frontend UI:** Real-time subscription status display, countdown timers, creator dashboard
+2. **Multi-tier Subscriptions:** Support for different subscription levels
+3. **Bulk Operations:** Batch subscription management
+4. **Referral System:** Creator referral rewards
+5. **NFT Integration:** Subscription as NFT for transferability
+6. **Cross-chain Support:** Bridge to other Polkadot parachains
+7. **Automatic Renewals:** Optional recurring payments
+8. **Analytics Dashboard:** Detailed subscription metrics for creators
+9. **Token Payments:** Support for custom tokens beyond native currency
 
 ## Resources
 

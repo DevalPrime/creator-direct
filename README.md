@@ -331,6 +331,7 @@ git push origin feature/your-feature-name
 - ✅ Shibuya testnet deployment
 
 ### Future Enhancements
+- [ ] Enhanced frontend UI (real-time status, countdown timers, creator dashboard)
 - [ ] Multi-tier subscription levels
 - [ ] NFT-based subscriptions (transferable)
 - [ ] Referral reward system
@@ -340,7 +341,6 @@ git push origin feature/your-feature-name
 - [ ] Batch operations
 - [ ] Auto-renewal options
 - [ ] Mobile wallet support
-- [ ] Enhanced creator tools
 
 ## 📄 License
 

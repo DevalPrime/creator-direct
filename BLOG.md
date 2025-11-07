@@ -357,22 +357,24 @@ We support both testnet and mainnet:
 
 ### What Could Be Improved
 
-1. **Frontend Testing:** Need automated E2E tests
-2. **Error Messages:** Could be more user-friendly
-3. **Documentation:** Screenshots and videos help greatly
-4. **Mobile UX:** Could optimize for mobile wallets
-5. **Monitoring:** Need better analytics and alerts
+1. **Frontend UI:** Currently simplified; needs status displays and creator dashboard
+2. **Frontend Testing:** Need automated E2E tests
+3. **Error Messages:** Could be more user-friendly
+4. **Documentation:** Screenshots and videos help greatly
+5. **Mobile UX:** Could optimize for mobile wallets
+6. **Monitoring:** Need better analytics and alerts
 
 ### Future Enhancements
 
-1. **Multi-Tier Subscriptions:** Different access levels
-2. **NFT Integration:** Subscription as transferable NFT
-3. **Referral System:** Reward user referrals
-4. **Analytics Dashboard:** Detailed metrics
-5. **Cross-Chain:** Bridge to other networks
-6. **Token Payments:** Accept custom tokens
-7. **Batch Operations:** Manage multiple subscriptions
-8. **Auto-Renewal:** Optional recurring payments
+1. **Enhanced Frontend UI:** Real-time status displays, countdown timers, creator dashboard with withdrawal
+2. **Multi-Tier Subscriptions:** Different access levels
+3. **NFT Integration:** Subscription as transferable NFT
+4. **Referral System:** Reward user referrals
+5. **Analytics Dashboard:** Detailed metrics for creators
+6. **Cross-Chain:** Bridge to other networks
+7. **Token Payments:** Accept custom tokens
+8. **Batch Operations:** Manage multiple subscriptions
+9. **Auto-Renewal:** Optional recurring payments
 
 ## Business Model
 
