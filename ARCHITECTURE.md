@@ -12,10 +12,10 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
 │  │   Wallet     │  │  Contract    │  │ Subscription │       │
-│  │  Integration │  │  Interaction │  │   Status     │       │
+│  │  Integration │  │  Interaction │  │   Payment    │       │
 │  │              │  │              │  │              │       │
-│  │ Polkadot.js  │  │ ContractAPI  │  │  Countdown   │       │
-│  │  Extension   │  │              │  │   Display    │       │
+│  │ Polkadot.js  │  │ ContractAPI  │  │   Subscribe  │       │
+│  │  Extension   │  │              │  │   Function   │       │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 │         │                  │                  │             │
 └─────────┼──────────────────┼──────────────────┼─────────────┘
@@ -76,18 +76,16 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 
 **Key Features:**
 - Wallet connection via Polkadot.js browser extension
-- Real-time subscription status display
-- Countdown timer showing blocks until expiry
-- Creator dashboard for withdrawing funds
-- Quick-fill amount buttons
-- QR code sharing
-- Toast notifications
+- Contract address input and validation
+- Subscription payment interface
+- Transaction status feedback
+- QR code sharing for contract address
 
 **Main Components:**
-- `App.tsx`: Main application component
-- `ProgressRing`: Circular progress indicator for subscription status
+- `App.tsx`: Main application component with all functionality
 - Wallet connection and account selection
 - Contract interaction UI
+- Payment and subscription flow
 
 ### Smart Contract (ink!)
 
@@ -177,25 +175,29 @@ User Action                    Frontend                    Contract
 
 ### Withdrawal Flow (Creator Only)
 
+The withdraw() function is available in the smart contract but not exposed in the simplified frontend UI. Creators should use [Polkadot.js Apps](https://polkadot.js.org/apps/) to interact with the contract directly:
+
 ```
-Creator                       Frontend                    Contract
+Creator                    Polkadot.js Apps            Contract
    │                              │                          │
-   ├──1. Click Withdraw──────────>│                          │
+   ├──1. Navigate to contract────>│                          │
    │                              │                          │
-   │                              ├──2. Call withdraw()─────>│
+   ├──2. Call withdraw()─────────>│                          │
    │                              │                          │
-   │                              │                          ├─3. Verify caller
+   │                              ├──3. Submit tx───────────>│
+   │                              │                          │
+   │                              │                          ├─4. Verify caller
    │                              │                          │   is creator
    │                              │                          │
-   │                              │                          ├─4. Get balance
+   │                              │                          ├─5. Get balance
    │                              │                          │
-   │                              │                          ├─5. Transfer to
+   │                              │                          ├─6. Transfer to
    │                              │                          │   creator
    │                              │                          │
-   │                              │<─6. Emit Withdrawn───────┤
+   │                              │<─7. Emit Withdrawn───────┤
    │                              │    Event                 │
    │                              │                          │
-   │<─7. Show success message─────┤                          │
+   │<─8. Transaction confirmed────┤                          │
 ```
 
 ## Security Considerations

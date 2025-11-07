@@ -135,17 +135,12 @@ The frontend is a single-page React application that:
 2. **Interacts with Contracts:**
    - Loads contract ABI from metadata
    - Constructs transactions
-   - Queries contract state
+   - Queries contract parameters
 
-3. **Displays Real-Time Status:**
-   - Shows active/expired subscription state
-   - Countdown timer to expiry
-   - Progress ring visualization
-
-4. **Creator Dashboard:**
-   - Shows contract balance
-   - Withdraw button
-   - Subscription management
+3. **Subscription Payment:**
+   - Simple payment amount input
+   - Subscribe function with transaction signing
+   - Transaction status feedback
 
 **Key Frontend Features:**
 
@@ -164,20 +159,23 @@ const api = await ApiPromise.create({ provider: wsProvider })
 const contract = new ContractPromise(api, metadata, contractAddress)
 ```
 
-#### Real-Time Countdown
-Calculate blocks remaining until expiry:
+#### Contract Interaction
+Query contract parameters:
 ```typescript
-const blocksLeft = Math.max(0, expiryBlock - currentBlock)
-const msLeft = blocksLeft * BLOCK_TIME_MS
-// Convert to human-readable time
+const { result, output } = await contract.query.getParams(account, { gasLimit })
+// Display price, period, and creator information
 ```
 
-#### Quick-Fill Amounts
-Make it easy to select common durations:
+#### Payment and Subscription
+Simple subscription flow:
 ```typescript
-<button onClick={() => setAmount(price)}>1 Month</button>
-<button onClick={() => setAmount(price * 3)}>3 Months</button>
-<button onClick={() => setAmount(price * 12)}>1 Year</button>
+await contract.tx.subscribe({ value, gasLimit })
+  .signAndSend(account, (result) => {
+    if (result.status.isFinalized) {
+      // Subscription complete
+    }
+  })
+```
 ```
 
 ## Development Process
