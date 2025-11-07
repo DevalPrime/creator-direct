@@ -99,11 +99,14 @@ Open http://localhost:3000 in your browser.
    - Sign the transaction in your wallet
 
 4. **Verify Subscription**
-   - Use Polkadot.js Apps to query contract state
+   - Open [Polkadot.js Apps](https://polkadot.js.org/apps/)
+   - Connect to Shibuya network: Settings → Select "Shibuya" or use `wss://rpc.shibuya.astar.network`
+   - Navigate to Developer → Contracts
+   - Add the contract address and interact with it
    - Call `is_active(your_address)` to check subscription status
    - Call `get_subscription_info(your_address)` to see expiry details
 
-> **Note for Creators**: To manage your contract (withdraw funds, update pricing), use [Polkadot.js Apps](https://polkadot.js.org/apps/) contract interface directly.
+> **Note for Creators**: To manage your contract (withdraw funds, update pricing), use [Polkadot.js Apps](https://polkadot.js.org/apps/) contract interface directly on the Shibuya network.
 
 ## 📦 Deployment
 

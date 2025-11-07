@@ -167,10 +167,8 @@ User Action                    Frontend                    Contract
     │                              │<─9. Emit Subscribed──────┤
     │                              │    Event                 │
     │                              │                          │
-    │                              ├─10. Query status────────>│
+    │<─10. Transaction confirmed───┤                          │
     │                              │                          │
-    │<─11. Show Active Status──────┤                          │
-    │    with countdown            │                          │
 ```
 
 ### Withdrawal Flow (Creator Only)
