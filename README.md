@@ -8,7 +8,7 @@ Built with ink! smart contracts on Astar/Shibuya and a React frontend powered by
 [![ink! 5.0](https://img.shields.io/badge/ink!-5.0-blue)](https://use.ink/)
 [![Astar](https://img.shields.io/badge/Network-Astar-purple)](https://astar.network/)
 
-![CreatorDirect Application](https://github.com/user-attachments/assets/8eb5f3b4-0f14-4281-89cc-26ac8a1d0b4d)
+![CreatorDirect Application](https://github.com/user-attachments/assets/8f55bb57-a832-4403-9e11-fa3f2a4a8192)
 
 ## 🌟 Overview
 
@@ -32,10 +32,11 @@ The application features a clean, minimal interface focused on subscriptions:
 
 - **Wallet Connection**: Easy integration with Polkadot.js Extension
 - **Contract Interaction**: Simple address input and contract loading
-- **Subscription Payment**: Enter payment amount and subscribe with one click
-- **Status Messages**: Transaction status and confirmation feedback
+- **Subscription Payment**: Enter payment amount in plancks with quick-fill buttons (1 SBY, 5 SBY, 10 SBY)
+- **Status Messages**: Real-time blockchain status and transaction confirmation feedback
+- **Collapsible Help Section**: "How to use this app" guide available at the bottom
 
-*See the screenshot above for the full interface*
+*See the screenshot above for the full interface. The app connects to Shibuya Testnet and displays the current block number in real-time.*
 
 ## 🏗️ Architecture
 
@@ -59,7 +60,7 @@ For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+ and npm
+- [Node.js](https://nodejs.org/) 20+ and npm (see `frontend/.nvmrc` for exact version)
 - [Polkadot.js Browser Extension](https://polkadot.js.org/extension/)
 - [Rust](https://rustup.rs/) and cargo (for contract development)
 
@@ -95,6 +96,7 @@ Open http://localhost:3000 in your browser.
    - Paste the contract address: `YQR6oMn2k8Yyzwb7w252jvA27ADa6AswAWfXFaYcMGSmhmq`
    - Click "Check Contract" to load contract details
    - Enter payment amount in plancks (e.g., 1000000000000000000 = 1 SBY)
+     - Or use quick-fill buttons: "1 SBY", "5 SBY", or "10 SBY"
    - Click "Subscribe & Pay"
    - Sign the transaction in your wallet
 

@@ -77,9 +77,12 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 **Key Features:**
 - Wallet connection via Polkadot.js browser extension
 - Contract address input and validation
-- Subscription payment interface
+- Subscription payment interface with quick-fill buttons
+- Real-time blockchain status (current block number)
 - Transaction status feedback
-- QR code sharing for contract address
+- QR code generation and sharing for contract address
+- Collapsible help section with usage instructions
+- Responsive design
 
 **Main Components:**
 - `App.tsx`: Main application component with all functionality
