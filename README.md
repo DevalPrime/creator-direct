@@ -334,7 +334,6 @@ git push origin feature/your-feature-name
 - ✅ Parameter updates
 - ✅ Frontend UI with real-time block status
 - ✅ Quick-fill payment buttons
-- ✅ QR code generation for contract sharing
 - ✅ Shibuya testnet deployment
 
 ### Future Enhancements
