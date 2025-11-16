@@ -121,12 +121,16 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
    - Returns tuple: (is_active, expiry_block, current_block, has_pass)
    - Used to query subscription status (can be called via Polkadot.js Apps)
 
-4. **withdraw() [creator only]**
+4. **get_params()**
+   - Returns contract parameters: (price_per_period, period_in_blocks, name, description, creator)
+   - Used by frontend to display contract information
+
+5. **withdraw() [creator only]**
    - Transfers all contract balance to creator
    - Protected by creator-only modifier
    - Emits `Withdrawn` event
 
-5. **update_params(price, period) [creator only]**
+6. **update_params(price, period) [creator only]**
    - Allows creator to modify subscription pricing and duration
    - Protected by creator-only modifier
    - Emits `ParamsUpdated` event

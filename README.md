@@ -332,11 +332,13 @@ git push origin feature/your-feature-name
 - ✅ Basic subscription functionality
 - ✅ Creator withdrawal
 - ✅ Parameter updates
-- ✅ Frontend UI
+- ✅ Frontend UI with real-time block status
+- ✅ Quick-fill payment buttons
+- ✅ QR code generation for contract sharing
 - ✅ Shibuya testnet deployment
 
 ### Future Enhancements
-- [ ] Enhanced frontend UI (real-time status, countdown timers, creator dashboard)
+- [ ] Enhanced frontend UI (countdown timers, creator dashboard with withdrawal UI)
 - [ ] Multi-tier subscription levels
 - [ ] NFT-based subscriptions (transferable)
 - [ ] Referral reward system
