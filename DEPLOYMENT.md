@@ -19,7 +19,7 @@ This guide covers deploying the CreatorDirect smart contract to both Shibuya tes
 
 3. **Node.js and npm** (for frontend)
    ```bash
-   # Install Node.js 18+ and npm
+   # Install Node.js 20+ and npm
    # Verify installation
    node --version
    npm --version
