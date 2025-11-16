@@ -26,8 +26,8 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 │                    Polkadot.js API                          │
 │                                                             │
 │  ┌─────────────────┐  ┌──────────────────┐                  │
-│  │  Web3 Accounts  │  │  Contract Calls   │                 │
-│  │   Management    │  │  & Transactions   │                 │
+│  │  Web3 Accounts  │  │  Contract Calls  │                  │
+│  │   Management    │  │  & Transactions  │                  │
 │  └─────────────────┘  └──────────────────┘                  │
 └───────────────────────────┬─────────────────────────────────┘
                             │
@@ -80,7 +80,6 @@ CreatorDirect is a decentralized subscription platform that enables direct fan-t
 - Subscription payment interface with quick-fill buttons
 - Real-time blockchain status (current block number)
 - Transaction status feedback
-- QR code generation and sharing for contract address
 - Collapsible help section with usage instructions
 - Responsive design
 
